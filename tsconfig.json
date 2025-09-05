@@ -14,9 +14,10 @@
     "jsx": "preserve",
     "incremental": true,
     "plugins": [{ "name": "next" }],
-    "baseUrl": ".",                          // ⬅️ add this
+    "baseUrl": ".", 
     "paths": {
-      "@/*": ["./src/*"]                     // keeps "@/..." -> "src/..."
+      "@/*": ["src/*"],          // maps "@/..." -> "src/..."
+      "@/types/*": ["src/types/*"] // 👈 explicitly maps to src/types
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

@@ -2,9 +2,8 @@ import type { ReactNode } from "react";
 import Sidebar from "@/components/Sidebar";
 import { getUserOrRedirect } from "@/utils/auth";
 
-export default async function DashboardLayout({ children }: { children: ReactNode }) {
-  await getUserOrRedirect(); // ⬅️ redirect to /login if not authed
-
+export default async function CounterpartiesLayout({ children }: { children: ReactNode }) {
+  await getUserOrRedirect();
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100">
       <Sidebar />

@@ -1,0 +1,65 @@
+.
+├── README.md
+├── create-stubs.sh
+├── eslint.config.mjs
+├── next-env.d.ts
+├── next.config.ts
+├── package-lock.json
+├── package.json
+├── postcss.config.js
+├── project-structure.txt
+├── public
+│   ├── MODadmin.png
+│   ├── file.svg
+│   ├── globe.svg
+│   ├── logo.png
+│   ├── next.svg
+│   ├── vercel.svg
+│   └── window.svg
+├── src
+│   ├── app
+│   │   ├── (auth)
+│   │   │   ├── callback
+│   │   │   ├── login
+│   │   │   └── signout
+│   │   ├── clients
+│   │   │   ├── contacts
+│   │   │   ├── index
+│   │   │   ├── layout.tsx
+│   │   │   └── users
+│   │   ├── counterparties
+│   │   │   ├── custodians
+│   │   │   ├── data-vendors
+│   │   │   ├── executing-brokers
+│   │   │   ├── fund-administrators
+│   │   │   ├── layout.tsx
+│   │   │   └── prime-brokers
+│   │   ├── dashboard
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx
+│   │   ├── favicon.ico
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   ├── login
+│   │   │   └── page.tsx
+│   │   ├── org
+│   │   │   ├── layout.tsx
+│   │   │   ├── reporting-tools
+│   │   │   ├── teams
+│   │   │   ├── training-materials
+│   │   │   └── users
+│   │   └── page.tsx
+│   ├── components
+│   │   ├── Sidebar.tsx
+│   │   └── SidebarClient.tsx
+│   ├── config
+│   │   └── sidebar.ts
+│   └── utils
+│       ├── auth.ts
+│       ├── supabaseBrowser.ts
+│       └── supabaseServer.ts
+├── tailwind.config.js
+├── tree.txt
+└── tsconfig.json
+
+28 directories, 35 files

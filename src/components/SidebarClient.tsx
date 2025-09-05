@@ -1,168 +1,171 @@
-// src/components/SidebarClient.tsx
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import {
-  Menu,
-  X,
-  Gauge,
-  Settings,
-  Users,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
+  Gauge, Users, Layers, BookOpen, BarChart, Building2, UserSquare2,
+  Contact, BriefcaseBusiness, Waypoints, ShieldCheck, FolderCog, ServerCog,
+  ChevronDown, LogOut,
 } from "lucide-react";
+import type { SidebarGroup, SidebarItem, IconKey } from "@/types/sidebar";
 
-type NavItem = { href: string; label: string; icon: "Gauge" | "Users" | "Settings" };
-type Props = {
-  nav: NavItem[];
+const ICONS: Record<IconKey, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
+  gauge: Gauge,
+  users: Users,
+  layers: Layers,
+  bookOpen: BookOpen,
+  barChart: BarChart,
+  building2: Building2,
+  userSquare2: UserSquare2,
+  contact: Contact,
+  briefcaseBusiness: BriefcaseBusiness,
+  waypoints: Waypoints,
+  shieldCheck: ShieldCheck,
+  folderCog: FolderCog,
+  serverCog: ServerCog,
+};
+
+const FOOTER_H = 76;
+const LS_KEY = "mod.sidebar.openGroups";
+
+interface Props {
+  groups: SidebarGroup[];
   user: { name: string; email: string; avatarUrl: string | null };
   logo: { src: string; alt: string };
-};
+  width?: number;
+}
 
-const Icon = ({ name, className }: { name: NavItem["icon"]; className?: string }) => {
-  if (name === "Gauge") return <Gauge className={className} />;
-  if (name === "Users") return <Users className={className} />;
-  return <Settings className={className} />;
-};
-
-export default function SidebarClient({ nav, user, logo }: Props) {
+export default function SidebarClient({ groups, user, logo, width = 236 }: Props) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const isActive = (href: string) => pathname === href || pathname?.startsWith(href);
 
-  const isActive = (href: string) =>
-    pathname === href || (href !== "/dashboard" && pathname?.startsWith(href));
+  /** -------------------- HYDRATION-SAFE OPEN STATE -------------------- */
+  const [open, setOpen] = useState<Set<string>>(() => new Set(["root", "org"]));
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
+      if (Array.isArray(saved) && saved.length) {
+        setOpen(new Set(saved.map(String)));
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(LS_KEY, JSON.stringify(Array.from(open)));
+  }, [open]);
+
+  const toggle = (id: string) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  /** ------------------------------------------------------------------- */
 
   return (
     <>
-      {/* Mobile top bar */}
-      <div className="lg:hidden fixed top-0 inset-x-0 z-40 flex items-center justify-between px-3 py-2 bg-neutral-900/70 backdrop-blur border-b border-white/10">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setMobileOpen((v) => !v)}
-            aria-label="Toggle menu"
-            className="p-2 rounded-lg hover:bg-white/10"
-          >
-            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-          <div className="h-8 w-8 rounded-lg overflow-hidden ring-1 ring-white/10 shadow">
-            <img src={logo.src} alt={logo.alt} className="h-full w-full object-cover" />
-          </div>
-          <span className="font-semibold">MOD Admin</span>
-        </div>
-      </div>
-
-      {/* Sidebar */}
       <aside
-        className={[
-          "fixed z-50 lg:z-30 top-0 left-0 h-full",
-          "bg-neutral-950/80 backdrop-blur border-r border-white/10",
-          "transition-[width] duration-300",
-          mobileOpen ? "w-72" : "w-0 lg:w-[--sb-w]",
-        ].join(" ")}
-        style={
-          {
-            ["--sb-w" as any]: collapsed ? "80px" : "264px",
-          } as React.CSSProperties
-        }
-        onClick={() => {
-          if (mobileOpen) setMobileOpen(false);
-        }}
+        className="fixed top-0 left-0 z-40 h-screen bg-neutral-950/90 backdrop-blur border-r border-white/10 text-neutral-200"
+        style={{ width }}
       >
-        <div className="flex h-full flex-col">
-          {/* Brand */}
-          <div className="hidden lg:flex items-center gap-3 h-16 px-4 border-b border-white/10">
-            <div className="h-9 w-9 rounded-xl overflow-hidden ring-1 ring-white/10 shadow">
-              <img src={logo.src} alt={logo.alt} className="h-full w-full object-cover" />
-            </div>
-            {!collapsed && <span className="font-semibold tracking-tight">MOD Admin</span>}
-            <button
-              onClick={() => setCollapsed((v) => !v)}
-              className="ml-auto p-2 rounded-lg hover:bg-white/10"
-              aria-label="Collapse"
-            >
-              {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-            </button>
+        {/* Brand */}
+        <div className="flex items-center h-14 px-3 border-b border-white/10">
+          <div className="h-8 w-8 overflow-hidden rounded-md ring-1 ring-white/10 bg-neutral-900 grid place-items-center">
+            <img src={logo.src} alt={logo.alt} className="h-6 w-6 object-contain" />
           </div>
+        </div>
 
-          {/* Mobile header spacer */}
-          <div className="lg:hidden h-12" />
-
-          {/* Nav */}
-          <nav className="flex-1 overflow-y-auto py-4">
-            <ul className="px-2 space-y-1">
-              {nav.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <li key={item.href}>
-                    <a
-                      href={item.href}
+        {/* Scrollable nav */}
+        <div className="h-[calc(100vh-56px)] overflow-y-auto text-[13px]" style={{ paddingBottom: FOOTER_H + 12 }}>
+          <nav className="py-3 space-y-3">
+            {groups.map((group: SidebarGroup) => (
+              <div key={group.id}>
+                {group.title ? (
+                  <button
+                    onClick={() => toggle(group.id)}
+                    className="w-full flex items-center justify-between px-3 text-[10px] font-medium uppercase tracking-wider text-neutral-400"
+                    aria-expanded={open.has(group.id)}
+                  >
+                    <span>{group.title}</span>
+                    <ChevronDown
                       className={[
-                        "group flex items-center gap-3 rounded-xl px-3 py-2",
-                        active
-                          ? "bg-white/10 text-white"
-                          : "text-neutral-300 hover:bg-white/5 hover:text-white",
+                        "h-4 w-4 transition-transform",
+                        open.has(group.id) ? "rotate-0" : "-rotate-90",
                       ].join(" ")}
-                    >
-                      <Icon name={item.icon} className="h-5 w-5 shrink-0 opacity-90" />
-                      {!collapsed && <span className="truncate">{item.label}</span>}
-                    </a>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
+                    />
+                  </button>
+                ) : null}
 
-          {/* User block */}
-          <div className="mt-auto border-t border-white/10 p-3">
-            <div className="flex items-center gap-3 px-2">
-              <div className="h-9 w-9 rounded-full overflow-hidden ring-1 ring-white/10 bg-neutral-800 flex items-center justify-center">
-                {user.avatarUrl ? (
-                  <img
-                    src={user.avatarUrl}
-                    alt={user.name}
-                    className="h-full w-full object-cover"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                ) : (
-                  <span className="text-xs text-neutral-300">
-                    {user.name?.charAt(0)?.toUpperCase() ?? "U"}
-                  </span>
-                )}
-              </div>
-              {!collapsed && (
-                <div className="min-w-0">
-                  <div className="text-sm font-medium leading-tight truncate">{user.name}</div>
-                  <div className="text-xs text-neutral-400 truncate">{user.email}</div>
-                </div>
-              )}
-              {!collapsed && (
-                <a
-                  href="/auth/signout"
-                  className="ml-auto p-2 rounded-lg hover:bg-white/10"
-                  title="Sign out"
+                <ul
+                  className={[
+                    "mt-2 px-2 space-y-1 transition-[grid-template-rows] duration-200",
+                    group.title ? "" : "mt-0",
+                    open.has(group.id) ? "grid grid-rows-[1fr]" : "grid grid-rows-[0fr]",
+                  ].join(" ")}
                 >
-                  <LogOut className="h-4 w-4" />
-                </a>
+                  <div className="overflow-hidden">
+                    {group.items.map((item: SidebarItem) => {
+                      const active = isActive(item.href);
+                      const Icon = ICONS[item.icon];
+                      return (
+                        <li key={item.href}>
+                          <a
+                            href={item.href}
+                            className={[
+                              "flex items-center gap-2.5 rounded-lg px-3 py-2",
+                              active
+                                ? "bg-white/10 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.08)]"
+                                : "text-neutral-300 hover:bg-white/5 hover:text-white",
+                            ].join(" ")}
+                          >
+                            <Icon className="h-4.5 w-4.5 shrink-0 opacity-90" />
+                            <span className="truncate">{item.label}</span>
+                          </a>
+                        </li>
+                      );
+                    })}
+                  </div>
+                </ul>
+              </div>
+            ))}
+          </nav>
+        </div>
+
+        {/* Footer */}
+        <div className="absolute bottom-0 inset-x-0 border-t border-white/10 p-2.5 bg-neutral-950/95 backdrop-blur" style={{ height: FOOTER_H }}>
+          <div className="flex items-center gap-2.5 px-1">
+            <div className="h-8 w-8 rounded-full overflow-hidden ring-1 ring-white/10 bg-neutral-800 grid place-items-center">
+              {user.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={user.name}
+                  className="h-full w-full object-cover"
+                  crossOrigin="anonymous"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
+                />
+              ) : (
+                <span className="text-[11px] text-neutral-300">
+                  {user.name?.charAt(0)?.toUpperCase() ?? "U"}
+                </span>
               )}
             </div>
+            <div className="min-w-0 leading-tight">
+              <div className="text-[12px] font-medium truncate">{user.name}</div>
+              <div className="text-[10px] text-neutral-400 truncate">{user.email}</div>
+            </div>
+            <a href="/auth/signout" className="ml-auto p-1.5 rounded-md hover:bg-white/10" title="Sign out">
+              <LogOut className="h-4 w-4" />
+            </a>
           </div>
         </div>
       </aside>
 
-      {/* Content offset for desktop */}
-      <div
-        className="hidden lg:block"
-        style={
-          {
-            width: collapsed ? 80 : 264,
-          } as React.CSSProperties
-        }
-      />
+      {/* Content offset */}
+      <div style={{ width }} className="hidden lg:block" />
     </>
   );
 }
