@@ -71,14 +71,22 @@ export default function SidebarClient({ sections, user, logo, width = 236 }: Pro
           <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/10 via-transparent to-transparent blur-3xl" />
         </div>
 
-        {/* Brand */}
-        <div className="relative z-10 h-28 flex items-center justify-center border-b border-white/10">
-          <img
-            src={logo.src}
-            alt={logo.alt}
-            className="max-h-20 w-auto object-contain drop-shadow-[0_0_15px_rgba(0,204,255,0.8)]"
-          />
-        </div>
+{/* Brand */}
+<div className="relative z-10 h-28 flex items-center justify-center border-b border-white/10">
+  <div className="relative">
+    {/* soft light plate behind the logo */}
+    <div className="absolute -inset-2 rounded-2xl bg-white/8 ring-1 ring-white/15" />
+    {/* gentle radial glow */}
+    <div className="absolute -inset-8 rounded-3xl blur-2xl bg-[radial-gradient(closest-side,rgba(255,255,255,0.28),transparent_70%)]" />
+    {/* logo */}
+    <img
+      src={logo.src}
+      alt={logo.alt}
+      className="relative max-h-20 w-auto object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.45)]"
+    />
+  </div>
+</div>
+
 
         {/* Scrollable nav */}
         <div className="relative z-10 h-[calc(100vh-56px)] overflow-y-auto text-[13px]" style={{ paddingBottom: FOOTER_H + 12 }}>
