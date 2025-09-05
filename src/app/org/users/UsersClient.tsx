@@ -8,13 +8,20 @@ type Row = {
   email: string;
   name: string | null;
   is_active: boolean;
-  created_at: string;
+  created_at: string;        // ISO string or date-like
   avatar_url: string | null;
   roles: string[];
   teams: string[];
 };
 
 type SortKey = "email" | "name" | "created_at" | "is_active";
+
+// deterministic formatter (server & client identical)
+const dateFmt = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+});
 
 export default function UsersClient({ rows }: { rows: Row[] }) {
   const [q, setQ] = useState("");
@@ -32,17 +39,23 @@ export default function UsersClient({ rows }: { rows: Row[] }) {
           r.roles.join(" "),
           r.teams.join(" "),
           r.is_active ? "active" : "inactive",
-        ].join(" ").toLowerCase();
+        ]
+          .join(" ")
+          .toLowerCase();
         return blob.includes(query);
       });
     }
     const sorted = [...data].sort((a, b) => {
       const dir = asc ? 1 : -1;
       switch (sortKey) {
-        case "email": return a.email.localeCompare(b.email) * dir;
-        case "name": return (a.name ?? "").localeCompare(b.name ?? "") * dir;
-        case "is_active": return (Number(a.is_active) - Number(b.is_active)) * dir;
-        default: return (a.created_at > b.created_at ? 1 : -1) * dir;
+        case "email":
+          return a.email.localeCompare(b.email) * dir;
+        case "name":
+          return (a.name ?? "").localeCompare(b.name ?? "") * dir;
+        case "is_active":
+          return (Number(a.is_active) - Number(b.is_active)) * dir;
+        default:
+          return (a.created_at > b.created_at ? 1 : -1) * dir;
       }
     });
     return sorted;
@@ -50,7 +63,10 @@ export default function UsersClient({ rows }: { rows: Row[] }) {
 
   const setSort = (key: SortKey) => {
     if (sortKey === key) setAsc(!asc);
-    else { setSortKey(key); setAsc(false); }
+    else {
+      setSortKey(key);
+      setAsc(false);
+    }
   };
 
   return (
@@ -71,12 +87,20 @@ export default function UsersClient({ rows }: { rows: Row[] }) {
         <table className="w-full text-sm">
           <thead className="bg-white/5 text-neutral-300">
             <tr>
-              <Th onClick={() => setSort("name")} active={sortKey==="name"} asc={asc} className="w-[24%]">Name</Th>
-              <Th onClick={() => setSort("email")} active={sortKey==="email"} asc={asc} className="w-[26%]">Email</Th>
+              <Th onClick={() => setSort("name")} active={sortKey === "name"} asc={asc} className="w-[24%]">
+                Name
+              </Th>
+              <Th onClick={() => setSort("email")} active={sortKey === "email"} asc={asc} className="w-[26%]">
+                Email
+              </Th>
               <th className="text-left py-2.5 px-3">Roles</th>
               <th className="text-left py-2.5 px-3">Teams</th>
-              <Th onClick={() => setSort("is_active")} active={sortKey==="is_active"} asc={asc} className="w-[10%]">Status</Th>
-              <Th onClick={() => setSort("created_at")} active={sortKey==="created_at"} asc={asc} className="w-[14%]">Created</Th>
+              <Th onClick={() => setSort("is_active")} active={sortKey === "is_active"} asc={asc} className="w-[10%]">
+                Status
+              </Th>
+              <Th onClick={() => setSort("created_at")} active={sortKey === "created_at"} asc={asc} className="w-[14%]">
+                Created
+              </Th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/10">
@@ -86,9 +110,13 @@ export default function UsersClient({ rows }: { rows: Row[] }) {
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-full overflow-hidden ring-1 ring-white/10 bg-neutral-800 grid place-items-center">
                       {r.avatar_url ? (
-                        <img src={r.avatar_url} alt={r.name ?? r.email} className="h-full w-full object-cover"
-                          crossOrigin="anonymous" referrerPolicy="no-referrer"
-                          onError={(e)=>((e.currentTarget as HTMLImageElement).style.display='none')}
+                        <img
+                          src={r.avatar_url}
+                          alt={r.name ?? r.email}
+                          className="h-full w-full object-cover"
+                          crossOrigin="anonymous"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
                         />
                       ) : (
                         <span className="text-[11px] text-neutral-300">
@@ -103,22 +131,33 @@ export default function UsersClient({ rows }: { rows: Row[] }) {
                   </div>
                 </td>
                 <td className="py-2.5 px-3 align-top text-neutral-300"></td>
-                <td className="py-2.5 px-3 align-top"><Tags items={r.roles} /></td>
-                <td className="py-2.5 px-3 align-top"><Tags items={r.teams} /></td>
                 <td className="py-2.5 px-3 align-top">
-                  <span className={["inline-flex items-center rounded-md px-2 py-0.5 text-xs",
-                    r.is_active ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/20"
-                                : "bg-neutral-700/30 text-neutral-300 ring-1 ring-white/10"].join(" ")}>
+                  <Tags items={r.roles} />
+                </td>
+                <td className="py-2.5 px-3 align-top">
+                  <Tags items={r.teams} />
+                </td>
+                <td className="py-2.5 px-3 align-top">
+                  <span
+                    className={[
+                      "inline-flex items-center rounded-md px-2 py-0.5 text-xs",
+                      r.is_active ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/20" : "bg-neutral-700/30 text-neutral-300 ring-1 ring-white/10",
+                    ].join(" ")}
+                  >
                     {r.is_active ? "Active" : "Inactive"}
                   </span>
                 </td>
                 <td className="py-2.5 px-3 align-top text-neutral-400 text-xs">
-                  {new Date(r.created_at).toLocaleDateString()}
+                  {r.created_at}
                 </td>
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={6} className="py-8 px-3 text-center text-neutral-400">No users match your search.</td></tr>
+              <tr>
+                <td colSpan={6} className="py-8 px-3 text-center text-neutral-400">
+                  No users match your search.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
@@ -127,15 +166,31 @@ export default function UsersClient({ rows }: { rows: Row[] }) {
   );
 }
 
-function Th({ children, onClick, active, asc, className="" }:{
-  children: React.ReactNode; onClick:()=>void; active:boolean; asc:boolean; className?:string;
+function Th({
+  children,
+  onClick,
+  active,
+  asc,
+  className = "",
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  active: boolean;
+  asc: boolean;
+  className?: string;
 }) {
   return (
-    <th onClick={onClick}
-        className={["text-left py-2.5 px-3 select-none cursor-pointer", active ? "text-white": "", className].join(" ")}>
+    <th
+      onClick={onClick}
+      className={[
+        "text-left py-2.5 px-3 select-none cursor-pointer",
+        active ? "text-white" : "",
+        className,
+      ].join(" ")}
+    >
       <span className="inline-flex items-center gap-1">
         {children}
-        <ArrowUpDown className={["h-3.5 w-3.5", active ? "opacity-80":"opacity-40"].join(" ")} />
+        <ArrowUpDown className={["h-3.5 w-3.5 opacity-70", active ? "" : "opacity-40"].join(" ")} />
       </span>
     </th>
   );

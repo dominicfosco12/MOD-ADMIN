@@ -20,7 +20,13 @@ export interface SidebarItem {
 }
 
 export interface SidebarGroup {
-  id: string;
-  title?: string;
+  id: string;          // unique within app
+  title?: string;      // group toggle label (optional)
   items: SidebarItem[];
+}
+
+export interface SidebarSection {
+  id: "internal" | "external";
+  label: string;       // visible section label
+  groups: SidebarGroup[];
 }

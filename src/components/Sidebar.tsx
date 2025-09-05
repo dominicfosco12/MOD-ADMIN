@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabaseServer";
 import SidebarClient from "@/components/SidebarClient";
-import { sidebarGroups } from "@/config/sidebar";
+import { sidebarSections } from "@/config/sidebar";
 
 export default async function Sidebar() {
   const supabase = await createClient();
@@ -26,9 +26,9 @@ export default async function Sidebar() {
 
   return (
     <SidebarClient
-      groups={sidebarGroups}
+      sections={sidebarSections}
       user={{ name, email, avatarUrl }}
-      logo={{ src: "/logo.png", alt: "MOD" }}
+      logo={{ src: "/logo.png", alt: "MOD Admin" }}
       width={236}
     />
   );

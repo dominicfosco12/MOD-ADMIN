@@ -34,9 +34,9 @@ export default function LoginPage() {
       <div className="mb-5 grid place-items-center">
         <div className="relative">
           <img
-            src="/MODadmin.png"
+            src="/logo.png"
             alt="MOD Administrator Portal"
-            className="mx-auto w-[260px] max-w-full object-contain"
+            className="mx-auto w-[460px] max-w-full object-contain"
           />
           <div className="pointer-events-none absolute inset-x-0 -bottom-1 mx-auto h-6 w-1/2 rounded-full blur-xl bg-cyan-500/10" />
         </div>
