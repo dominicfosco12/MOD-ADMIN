@@ -1,29 +1,23 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
-import { Search, ArrowUpDown, MoreHorizontal, Pencil, Power, PowerOff, Plus } from "lucide-react";
-import ConfirmDialog from "./ConfirmDialog";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Search,
+  ArrowUpDown,
+  MoreHorizontal,
+  Pencil,
+  Power,
+  PowerOff,
+  Plus,
+} from "lucide-react";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import EditUserModal from "./EditUserModal";
 import { createBrowserSupabaseClient } from "@/utils/supabaseBrowser";
-
-type Option = { id: string; label: string };
-
-type Row = {
-  id: string;
-  email: string;
-  name: string | null;
-  is_active: boolean;
-  avatar_url: string | null;
-  roles: string[];
-  roles_ids: string[];
-  teams: string[];
-  teams_ids: string[];
-  created_at: string;
-  created_at_label: string;
-};
+import type { UserRow } from "./types";
+import type { Option } from "./MultiSelect";
 
 type Props = {
-  rows: Row[];
+  rows: UserRow[];
   roleOptions: Option[];
   teamOptions: Option[];
 };
@@ -34,18 +28,22 @@ export default function UsersClient({ rows, roleOptions, teamOptions }: Props) {
   const [q, setQ] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [asc, setAsc] = useState(false);
-  const [data, setData] = useState<Row[]>(rows);
+  const [data, setData] = useState<UserRow[]>(rows);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
 
-  const [confirm, setConfirm] = useState<{ id: string | null; name: string | null; nextActive: boolean }>({
-    id: null,
-    name: null,
-    nextActive: false,
-  });
+  const [confirm, setConfirm] = useState<{
+    id: string | null;
+    name: string | null;
+    nextActive: boolean;
+  }>({ id: null, name: null, nextActive: false });
 
-  const [editing, setEditing] = useState<{ open: boolean; row: Row | null }>({ open: false, row: null });
+  const [editing, setEditing] = useState<{
+    open: boolean;
+    row: UserRow | null;
+  }>({ open: false, row: null });
 
+  // sync when server rows update (navigation/refresh)
   useEffect(() => setData(rows), [rows]);
 
   const filtered = useMemo(() => {
@@ -72,8 +70,12 @@ export default function UsersClient({ rows, roleOptions, teamOptions }: Props) {
           return a.email.localeCompare(b.email) * dir;
         case "is_active":
           return (Number(a.is_active) - Number(b.is_active)) * dir;
-        default:
-          return ((a.created_at ?? "") > (b.created_at ?? "") ? 1 : -1) * dir;
+        default: {
+          // created_at can be null; treat null as oldest
+          const av = a.created_at ?? "";
+          const bv = b.created_at ?? "";
+          return (av > bv ? 1 : -1) * dir;
+        }
       }
     });
     return copy;
@@ -95,20 +97,24 @@ export default function UsersClient({ rows, roleOptions, teamOptions }: Props) {
   const supabase = useMemo(() => createBrowserSupabaseClient(), []);
 
   async function toggleActive(id: string, nextActive: boolean) {
+    // optimistic
     setData((cur) => cur.map((r) => (r.id === id ? { ...r, is_active: nextActive } : r)));
+
     const { error } = await supabase.from("users").update({ is_active: nextActive }).eq("id", id);
+
     if (error) {
+      // revert on error
       setData((cur) => cur.map((r) => (r.id === id ? { ...r, is_active: !nextActive } : r)));
       console.error(error);
       alert("Failed to update user status.");
     }
   }
 
-  function openEdit(row: Row | null) {
+  function openEdit(row: UserRow | null) {
     setEditing({ open: true, row });
   }
 
-  function closeEdit(updated?: Row) {
+  function closeEdit(updated?: UserRow) {
     setEditing({ open: false, row: null });
     if (updated) {
       setData((cur) => cur.map((r) => (r.id === updated.id ? updated : r)));
@@ -147,19 +153,29 @@ export default function UsersClient({ rows, roleOptions, teamOptions }: Props) {
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10 bg-neutral-950/80 backdrop-blur border-b border-white/10">
               <tr className="text-neutral-400">
-                <Th onClick={() => setSort("name")} active={sortKey === "name"} asc={asc} className="w-[28%]">Name</Th>
-                <Th onClick={() => setSort("email")} active={sortKey === "email"} asc={asc} className="w-[24%]">Email</Th>
+                <Th onClick={() => setSort("name")} active={sortKey === "name"} asc={asc} className="w-[28%]">
+                  Name
+                </Th>
+                <Th onClick={() => setSort("email")} active={sortKey === "email"} asc={asc} className="w-[24%]">
+                  Email
+                </Th>
                 <th className="px-4 py-3 text-left w-[18%]">Roles</th>
                 <th className="px-4 py-3 text-left w-[18%]">Teams</th>
-                <Th onClick={() => setSort("is_active")} active={sortKey === "is_active"} asc={asc} className="w-[6%]">Status</Th>
-                <Th onClick={() => setSort("created_at")} active={sortKey === "created_at"} asc={asc} className="w-[10%]">Created</Th>
+                <Th onClick={() => setSort("is_active")} active={sortKey === "is_active"} asc={asc} className="w-[6%]">
+                  Status
+                </Th>
+                <Th onClick={() => setSort("created_at")} active={sortKey === "created_at"} asc={asc} className="w-[10%]">
+                  Created
+                </Th>
                 <th className="px-4 py-3 text-right w-[6%]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {paged.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-neutral-400">No users match your search.</td>
+                  <td colSpan={7} className="px-4 py-10 text-center text-neutral-400">
+                    No users match your search.
+                  </td>
                 </tr>
               ) : (
                 paged.map((r) => (
@@ -174,12 +190,21 @@ export default function UsersClient({ rows, roleOptions, teamOptions }: Props) {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-neutral-300">{r.email}</td>
-                    <td className="px-4 py-3"><Pills items={r.roles} emptyLabel="—" /></td>
-                    <td className="px-4 py-3"><Pills items={r.teams} emptyLabel="—" /></td>
                     <td className="px-4 py-3">
-                      <span className={["inline-flex items-center rounded-full px-2 py-0.5 text-xs",
-                        r.is_active ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/20" : "bg-neutral-700/40 text-neutral-300 ring-1 ring-white/10",
-                      ].join(" ")}>
+                      <Pills items={r.roles} emptyLabel="—" />
+                    </td>
+                    <td className="px-4 py-3">
+                      <Pills items={r.teams} emptyLabel="—" />
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={[
+                          "inline-flex items-center rounded-full px-2 py-0.5 text-xs",
+                          r.is_active
+                            ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/20"
+                            : "bg-neutral-700/40 text-neutral-300 ring-1 ring-white/10",
+                        ].join(" ")}
+                      >
                         {r.is_active ? "Active" : "Inactive"}
                       </span>
                     </td>
@@ -196,13 +221,26 @@ export default function UsersClient({ rows, roleOptions, teamOptions }: Props) {
                         </button>
                         <button
                           className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs border border-white/10 bg-neutral-900/60 hover:bg-neutral-900"
-                          onClick={() => setConfirm({ id: r.id, name: r.name ?? r.email, nextActive: !r.is_active })}
+                          onClick={() =>
+                            setConfirm({
+                              id: r.id,
+                              name: r.name ?? r.email,
+                              nextActive: !r.is_active,
+                            })
+                          }
                           title={r.is_active ? "Deactivate" : "Activate"}
                         >
-                          {r.is_active ? <PowerOff className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
+                          {r.is_active ? (
+                            <PowerOff className="h-3.5 w-3.5" />
+                          ) : (
+                            <Power className="h-3.5 w-3.5" />
+                          )}
                           {r.is_active ? "Deactivate" : "Activate"}
                         </button>
-                        <button className="inline-flex items-center justify-center rounded-lg p-1.5 border border-white/10 bg-neutral-900/60 hover:bg-neutral-900" title="More">
+                        <button
+                          className="inline-flex items-center justify-center rounded-lg p-1.5 border border-white/10 bg-neutral-900/60 hover:bg-neutral-900"
+                          title="More"
+                        >
                           <MoreHorizontal className="h-4 w-4" />
                         </button>
                       </div>
@@ -222,11 +260,23 @@ export default function UsersClient({ rows, roleOptions, teamOptions }: Props) {
             <span className="text-neutral-200">{total}</span>
           </div>
           <div className="flex items-center gap-2">
-            <button disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="px-3 py-1.5 text-xs rounded-lg border border-white/10 disabled:opacity-40 bg-neutral-900/60 hover:bg-neutral-900">Prev</button>
-            <div className="text-xs text-neutral-300">Page <span className="text-neutral-200">{page}</span> / <span className="text-neutral-200">{maxPage}</span></div>
-            <button disabled={page >= maxPage} onClick={() => setPage((p) => Math.min(maxPage, p + 1))}
-              className="px-3 py-1.5 text-xs rounded-lg border border-white/10 disabled:opacity-40 bg-neutral-900/60 hover:bg-neutral-900">Next</button>
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="px-3 py-1.5 text-xs rounded-lg border border-white/10 disabled:opacity-40 bg-neutral-900/60 hover:bg-neutral-900"
+            >
+              Prev
+            </button>
+            <div className="text-xs text-neutral-300">
+              Page <span className="text-neutral-200">{page}</span> / <span className="text-neutral-200">{maxPage}</span>
+            </div>
+            <button
+              disabled={page >= maxPage}
+              onClick={() => setPage((p) => Math.min(maxPage, p + 1))}
+              className="px-3 py-1.5 text-xs rounded-lg border border-white/10 disabled:opacity-40 bg-neutral-900/60 hover:bg-neutral-900"
+            >
+              Next
+            </button>
           </div>
         </div>
       </div>
@@ -261,21 +311,53 @@ export default function UsersClient({ rows, roleOptions, teamOptions }: Props) {
 }
 
 function Th({
-  children, onClick, active, asc, className = "",
-}: { children: React.ReactNode; onClick?: () => void; active?: boolean; asc?: boolean; className?: string }) {
+  children,
+  onClick,
+  active,
+  asc,
+  className = "",
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  active?: boolean;
+  asc?: boolean;
+  className?: string;
+}) {
   return (
-    <th onClick={onClick} className={["px-4 py-3 text-left select-none", onClick ? "cursor-pointer" : "", className].join(" ")}>
+    <th
+      onClick={onClick}
+      className={[
+        "px-4 py-3 text-left select-none",
+        onClick ? "cursor-pointer" : "",
+        className,
+      ].join(" ")}
+    >
       <span className="inline-flex items-center gap-1.5">
         <span>{children}</span>
-        {onClick ? <ArrowUpDown className={["h-3.5 w-3.5", active ? "text-neutral-300" : "text-neutral-500"].join(" ")} /> : null}
-        {active ? <span className="sr-only">{asc ? "ascending" : "descending"}</span> : null}
+        <ArrowUpDown
+          className={[
+            "h-3.5 w-3.5",
+            active ? "text-neutral-300" : "text-neutral-500",
+          ].join(" ")}
+        />
+        {active ? (
+          <span className="sr-only">{asc ? "ascending" : "descending"}</span>
+        ) : null}
       </span>
     </th>
   );
 }
 
 function Avatar({ url, name }: { url: string | null; name: string }) {
-  if (url) return <img src={url} alt="" className="h-8 w-8 rounded-full object-cover ring-1 ring-white/10" />;
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt=""
+        className="h-8 w-8 rounded-full object-cover ring-1 ring-white/10"
+      />
+    );
+  }
   const initial = (name?.[0] ?? "?").toUpperCase();
   return (
     <div className="h-8 w-8 rounded-full grid place-items-center bg-gradient-to-br from-cyan-500/30 to-blue-600/30 text-neutral-100 ring-1 ring-white/10">
@@ -289,7 +371,10 @@ function Pills({ items, emptyLabel = "—" }: { items: string[]; emptyLabel?: st
   return (
     <div className="flex flex-wrap gap-1.5">
       {items.map((x, i) => (
-        <span key={i} className="rounded-full px-2 py-0.5 text-[11px] bg-neutral-800/70 text-neutral-300 ring-1 ring-white/10">
+        <span
+          key={i}
+          className="rounded-full px-2 py-0.5 text-[11px] bg-neutral-800/70 text-neutral-300 ring-1 ring-white/10"
+        >
           {x}
         </span>
       ))}

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/utils/supabaseServer";
+import { createActionClient } from "@/utils/supabaseServer";
 
 function to(path: string) {
   return new URL(path, process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000");
@@ -10,7 +10,7 @@ export async function GET(req: Request) {
   const code = url.searchParams.get("code");
   const next = url.searchParams.get("next") ?? "/dashboard";
 
-  const supabase = await createClient();
+  const supabase = await createActionClient();
 
   if (code) {
     try {

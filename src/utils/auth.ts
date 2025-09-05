@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/utils/supabaseServer";
+import { createRSCClient } from "@/utils/supabaseServer";
 
 export async function getUserOrRedirect() {
-  const supabase = await createClient();
+  const supabase = await createRSCClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

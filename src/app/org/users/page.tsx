@@ -1,6 +1,6 @@
 // src/app/org/users/page.tsx
 import UsersClient from "./UsersClient";
-import { createClient } from "@/utils/supabaseServer";
+import { createRSCClient } from "@/utils/supabaseServer";
 
 type DbUser = {
   id: string;
@@ -17,7 +17,7 @@ type MapUserRole = { user_id: string; role_id: string };
 type MapTeamMember = { user_id: string; team_id: string };
 
 export default async function Page() {
-  const supabase = await createClient();
+  const supabase = await createRSCClient();
 
   const [{ data: users = [] }, { data: roles = [] }, { data: teams = [] }, { data: userRoles = [] }, { data: teamMembers = [] }] =
     await Promise.all([

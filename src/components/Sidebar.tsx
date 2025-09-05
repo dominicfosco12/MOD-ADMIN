@@ -1,9 +1,9 @@
-import { createClient } from "@/utils/supabaseServer";
+import { createRSCClient } from "@/utils/supabaseServer";
 import SidebarClient from "@/components/SidebarClient";
 import { sidebarSections } from "@/config/sidebar";
 
 export default async function Sidebar() {
-  const supabase = await createClient();
+  const supabase = await createRSCClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

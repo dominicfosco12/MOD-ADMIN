@@ -1,9 +1,9 @@
-import { createClient } from "@/utils/supabaseServer";
+import { createRSCClient } from "@/utils/supabaseServer";
 
 export const revalidate = 0;
 
 export default async function Page() {
-  const supabase = await createClient();
+  const supabase = await createRSCClient();
 
   const { data: teamsData } = await supabase
     .from("teams")

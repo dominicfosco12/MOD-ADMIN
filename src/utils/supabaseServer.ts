@@ -1,37 +1,45 @@
 import { cookies } from "next/headers";
-import { createServerClient as _createServerClient } from "@supabase/ssr";
-// If you have a generated Database type, import it; otherwise keep `any`.
-type Database = any;
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
-/**
- * Server-side Supabase client for Next App Router (Next 15+ with async cookies()).
- */
-export async function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  if (!url || !anon) {
-    throw new Error(
-      "Missing Supabase env vars (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY)"
-    );
-  }
+// RSC-safe client: use in page/layout/server components (no cookie writes)
+export async function createRSCClient() {
+  const store = await cookies(); // <- async in Next 15
 
-  // Next 15+ returns a Promise here
-  const cookieStore = await cookies();
-
-  return _createServerClient<Database>(url, anon, {
-    cookies: {
-      get(name: string) {
-        return cookieStore.get(name)?.value;
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return store.get(name)?.value;
+        },
+        // writes are no-op in RSC
+        set(_name: string, _value: string, _opts: CookieOptions) {},
+        remove(_name: string, _opts: CookieOptions) {},
       },
-      set(name: string, value: string, options?: any) {
-        cookieStore.set(name, value, options);
-      },
-      remove(name: string) {
-        cookieStore.delete(name);
-      },
-    },
-  });
+    }
+  );
 }
 
-export const createServerSupabaseClient = createClient;
-export default createClient;
+// Action/Route client: ONLY use in "use server" actions or route handlers
+export async function createActionClient() {
+  const store = await cookies(); // <- async in Next 15
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return store.get(name)?.value;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          store.set({ name, value, ...options } as any);
+        },
+        remove(name: string, _opts: CookieOptions) {
+          store.delete(name);
+        },
+      },
+    }
+  );
+}

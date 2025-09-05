@@ -3,20 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createBrowserSupabaseClient } from "@/utils/supabaseBrowser";
 import MultiSelect, { type Option } from "./MultiSelect";
-
-type Row = {
-  id: string;
-  email: string;
-  name: string | null;
-  is_active: boolean;
-  avatar_url: string | null;
-  roles: string[];
-  roles_ids: string[];
-  teams: string[];
-  teams_ids: string[];
-  created_at: string;
-  created_at_label: string;
-};
+import type { UserRow } from "./types";
 
 export default function EditUserModal({
   open,
@@ -26,10 +13,10 @@ export default function EditUserModal({
   onClose,
 }: {
   open: boolean;
-  row: Row | null;                // null => create
+  row: UserRow | null;         // null => create
   roleOptions: Option[];
   teamOptions: Option[];
-  onClose: (updated?: Row) => void;
+  onClose: (updated?: UserRow) => void;
 }) {
   const supabase = createBrowserSupabaseClient();
 
@@ -57,7 +44,7 @@ export default function EditUserModal({
   const roleNameById = new Map(roleOptions.map((o) => [o.id, o.label]));
   const teamNameById = new Map(teamOptions.map((o) => [o.id, o.label]));
 
-  function close(updated?: Row) {
+  function close(updated?: UserRow) {
     onClose(updated);
   }
 
@@ -69,13 +56,16 @@ export default function EditUserModal({
     return { toAdd, toRemove };
   };
 
+  const asStrings = (arr: Array<string | undefined>) =>
+    arr.filter((x): x is string => Boolean(x));
+
   async function save() {
     setSaving(true);
     try {
-      let userId = row?.id ?? null;
+      let userId: string; // <- GUARANTEED string
 
       if (row) {
-        // Update core user fields
+        // --- Update existing user ---
         const { error } = await supabase
           .from("users")
           .update({ display_name: name || null, is_active: isActive })
@@ -83,34 +73,66 @@ export default function EditUserModal({
         if (error) throw error;
 
         // Roles diff
-        const { toAdd: addRoles, toRemove: rmRoles } = computeDiff(baselineRoleIds, roleIds);
+        const { toAdd: addRoles, toRemove: rmRoles } = computeDiff(
+          baselineRoleIds,
+          roleIds
+        );
         if (rmRoles.length) {
-          const { error: delErr } = await supabase.from("user_roles").delete().in("role_id", rmRoles).eq("user_id", row.id);
+          const { error: delErr } = await supabase
+            .from("user_roles")
+            .delete()
+            .in("role_id", rmRoles)
+            .eq("user_id", row.id);
           if (delErr) throw delErr;
         }
         if (addRoles.length) {
-          const { error: insErr } = await supabase.from("user_roles").insert(
-            addRoles.map((role_id) => ({ user_id: row.id, role_id }))
-          );
+          const { error: insErr } = await supabase
+            .from("user_roles")
+            .insert(addRoles.map((role_id) => ({ user_id: row.id, role_id })));
           if (insErr) throw insErr;
         }
 
         // Teams diff
-        const { toAdd: addTeams, toRemove: rmTeams } = computeDiff(baselineTeamIds, teamIds);
+        const { toAdd: addTeams, toRemove: rmTeams } = computeDiff(
+          baselineTeamIds,
+          teamIds
+        );
         if (rmTeams.length) {
-          const { error: delT } = await supabase.from("team_members").delete().in("team_id", rmTeams).eq("user_id", row.id);
+          const { error: delT } = await supabase
+            .from("team_members")
+            .delete()
+            .in("team_id", rmTeams)
+            .eq("user_id", row.id);
           if (delT) throw delT;
         }
         if (addTeams.length) {
-          const { error: insT } = await supabase.from("team_members").insert(
-            addTeams.map((team_id) => ({ user_id: row.id, team_id }))
-          );
+          const { error: insT } = await supabase
+            .from("team_members")
+            .insert(addTeams.map((team_id) => ({ user_id: row.id, team_id })));
           if (insT) throw insT;
         }
 
         userId = row.id;
+
+        // Updated row for client table
+        const rolesNames = asStrings(roleIds.map((id) => roleNameById.get(id)));
+        const teamsNames = asStrings(teamIds.map((id) => teamNameById.get(id)));
+
+        close({
+          id: userId,
+          email: row.email,
+          name: name || null,
+          is_active: isActive,
+          avatar_url: row.avatar_url,
+          roles: rolesNames,
+          roles_ids: roleIds,
+          teams: teamsNames,
+          teams_ids: teamIds,
+          created_at: row.created_at ?? null,
+          created_at_label: row.created_at_label ?? "",
+        });
       } else {
-        // Create minimal user (adjust flow to your auth model as needed)
+        // --- Create new user ---
         const { data: created, error: createErr } = await supabase
           .from("users")
           .insert({ email, display_name: name || null, is_active: isActive })
@@ -133,15 +155,16 @@ export default function EditUserModal({
           if (insT) throw insT;
         }
 
-        // Prepare update row for table
         const created_at_label = created.created_at
-          ? new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric" }).format(
-              new Date(created.created_at)
-            )
+          ? new Intl.DateTimeFormat("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            }).format(new Date(created.created_at))
           : "";
 
-        const rolesNames = roleIds.map((id) => roleNameById.get(id)!).filter(Boolean);
-        const teamsNames = teamIds.map((id) => teamNameById.get(id)!).filter(Boolean);
+        const rolesNames = asStrings(roleIds.map((id) => roleNameById.get(id)));
+        const teamsNames = asStrings(teamIds.map((id) => teamNameById.get(id)));
 
         close({
           id: userId,
@@ -153,31 +176,9 @@ export default function EditUserModal({
           roles_ids: roleIds,
           teams: teamsNames,
           teams_ids: teamIds,
-          created_at: created.created_at ?? "",
+          created_at: created.created_at ?? null,
           created_at_label,
         });
-        return;
-      }
-
-      // For edits, return updated row for table
-      if (userId) {
-        const rolesNames = roleIds.map((id) => roleNameById.get(id)!).filter(Boolean);
-        const teamsNames = teamIds.map((id) => teamNameById.get(id)!).filter(Boolean);
-        close({
-          id: userId,
-          email: row?.email ?? email,
-          name: name || null,
-          is_active: isActive,
-          avatar_url: row?.avatar_url ?? null,
-          roles: rolesNames,
-          roles_ids: roleIds,
-          teams: teamsNames,
-          teams_ids: teamIds,
-          created_at: row?.created_at ?? "",
-          created_at_label: row?.created_at_label ?? "",
-        });
-      } else {
-        close();
       }
     } catch (e) {
       console.error(e);
@@ -189,13 +190,20 @@ export default function EditUserModal({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => close()} />
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={() => close()}
+      />
       <div className="relative z-10 w-full max-w-xl rounded-2xl border border-white/10 bg-neutral-950 p-5 shadow-2xl">
-        <h3 className="text-base font-semibold mb-4">{row ? "Edit User" : "Add User"}</h3>
+        <h3 className="text-base font-semibold mb-4">
+          {row ? "Edit User" : "Add User"}
+        </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs text-neutral-400 mb-1">Display Name</label>
+            <label className="block text-xs text-neutral-400 mb-1">
+              Display Name
+            </label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -205,7 +213,9 @@ export default function EditUserModal({
           </div>
 
           <div>
-            <label className="block text-xs text-neutral-400 mb-1">Email</label>
+            <label className="block text-xs text-neutral-400 mb-1">
+              Email
+            </label>
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -217,12 +227,22 @@ export default function EditUserModal({
 
           <div>
             <label className="block text-xs text-neutral-400 mb-1">Roles</label>
-            <MultiSelect value={roleIds} onChange={setRoleIds} options={roleOptions} placeholder="Select roles" />
+            <MultiSelect
+              value={roleIds}
+              onChange={setRoleIds}
+              options={roleOptions}
+              placeholder="Select roles"
+            />
           </div>
 
           <div>
             <label className="block text-xs text-neutral-400 mb-1">Teams</label>
-            <MultiSelect value={teamIds} onChange={setTeamIds} options={teamOptions} placeholder="Select teams" />
+            <MultiSelect
+              value={teamIds}
+              onChange={setTeamIds}
+              options={teamOptions}
+              placeholder="Select teams"
+            />
           </div>
 
           <div className="md:col-span-2">
@@ -239,10 +259,17 @@ export default function EditUserModal({
         </div>
 
         <div className="mt-5 flex justify-end gap-2">
-          <button onClick={() => close()} className="px-3 py-1.5 text-sm rounded-lg border border-white/10 bg-neutral-900/60 hover:bg-neutral-900">
+          <button
+            onClick={() => close()}
+            className="px-3 py-1.5 text-sm rounded-lg border border-white/10 bg-neutral-900/60 hover:bg-neutral-900"
+          >
             Cancel
           </button>
-          <button onClick={save} disabled={saving} className="px-3 py-1.5 text-sm rounded-lg bg-cyan-600/80 hover:bg-cyan-600 text-white disabled:opacity-60">
+          <button
+            onClick={save}
+            disabled={saving}
+            className="px-3 py-1.5 text-sm rounded-lg bg-cyan-600/80 hover:bg-cyan-600 text-white disabled:opacity-60"
+          >
             {saving ? "Saving…" : "Save"}
           </button>
         </div>
