@@ -5,7 +5,7 @@ export const sidebarSections: SidebarSection[] = [
     id: "internal",
     label: "INTERNAL",
     groups: [
-            {
+      {
         id: "org",
         title: "MOD Organization",
         items: [
@@ -38,20 +38,19 @@ export const sidebarSections: SidebarSection[] = [
         id: "clients",
         title: "MOD Clients",
         items: [
-          { href: "/clients", label: "Clients", icon: "building2" },
-          { href: "/clients/users", label: "Users", icon: "userSquare2" },
-          { href: "/clients/contacts", label: "Contacts", icon: "contact" },
+          { href: "/clients/firms",    label: "Firms",    icon: "building2" },
+          { href: "/clients/projects", label: "Projects", icon: "folderCog" },
         ],
       },
       {
         id: "counterparties",
         title: "MOD Counterparties",
         items: [
-          { href: "/counterparties/prime-brokers", label: "Prime Brokers", icon: "briefcaseBusiness" },
-          { href: "/counterparties/executing-brokers", label: "Executing Brokers", icon: "waypoints" },
-          { href: "/counterparties/custodians", label: "Custodians", icon: "shieldCheck" },
-          { href: "/counterparties/fund-administrators", label: "Fund Administrators", icon: "folderCog" },
-          { href: "/counterparties/data-vendors", label: "Data Vendors", icon: "serverCog" },
+          { href: "/counterparties/prime-brokers",      label: "Prime Brokers",        icon: "briefcaseBusiness" },
+          { href: "/counterparties/executing-brokers",  label: "Executing Brokers",    icon: "waypoints" },
+          { href: "/counterparties/custodians",         label: "Custodians",           icon: "shieldCheck" },
+          { href: "/counterparties/fund-administrators",label: "Fund Administrators",  icon: "folderCog" },
+          { href: "/counterparties/data-vendors",       label: "Data Vendors",         icon: "serverCog" },
         ],
       },
     ],
